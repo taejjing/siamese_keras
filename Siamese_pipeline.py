@@ -3,7 +3,10 @@ import pickle
 import numpy as np
 
 class Siamese_Loader:
-    """For loading batches and testing tasks to a siamese net"""
+    # TODO add random state
+    """
+    For loading batches and testing tasks to a siamese net
+    """
     def __init__(self):
         self.data = {}
         self.categories = {}
@@ -31,7 +34,7 @@ class Siamese_Loader:
         pairs = [np.zeros((batch_size, h, w, 1)) for i in range(2)]
         # initialize vector for the targets, and make one half of it '1's so 2nd half of batch has same class
         targets = np.zeros((batch_size, ))
-        targets[batch_size // 2] = 1
+        targets[batch_size//2:] = 1
 
         for i in range(batch_size):
             category = categories[i]
@@ -39,6 +42,21 @@ class Siamese_Loader:
             pairs[0][i, :, :, :] = X[category, idx_1].reshape(w, h, 1)
             idx_2 = np.random.randint(0, n_examples)
             # pick images of same class for 1st half, different for 2nd
+            if i >= batch_size // 2 :
+                category_2 = category
+            else :
+                # add a random number to the category modulo n classes to ensure 2nd image has
+                # different category
+                category_2 = (category + np.random.randint(1, n_classes)) % n_classes
+            pairs[1][i, :, :, :] = X[category_2, idx_2].reshape(w, h, 1)
+
+        return pairs, targets
+
+    def generate(self, batch_size, s="train"):
+        """a generator for bathces, so model.fit_generator can be used."""
+        while True:
+            pairs, targets = self.get_batch(batch_size, s)
+            yield(pairs, targets)
                 
 
 
