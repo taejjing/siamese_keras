@@ -57,5 +57,3 @@ print(list(classes.keys()))
 print("Validation alphabets:", end="\n\n")
 print(list(val_classes.keys()))
 
-
-
