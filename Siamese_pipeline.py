@@ -1,9 +1,10 @@
 import os
 import pickle
 import numpy as np
+from sklearn.utils import shuffle
 
 class Siamese_Loader:
-    # TODO add random state
+    # TODO: add random state
     """
     For loading batches and testing tasks to a siamese net
     """
@@ -57,6 +58,60 @@ class Siamese_Loader:
         while True:
             pairs, targets = self.get_batch(batch_size, s)
             yield(pairs, targets)
+
+    def make_oneshot_task(self, N, s='val', language=None):
+        """Create pairs of test image, support set testing N way one-shot learning."""
+        X=self.data[s]
+        n_classes, n_examples, w, h = X.shape
+        indices = np.random.randint(0, n_examples, size=(N, ))
+
+        if language is not None:
+            low, high = self.categories[s][language]
+            if N > high - low:
+                raise ValueError("This language ({}) has less than {} letters".format(language, N))
+            categories = np.random.choice(range(low, high), size=(N, ), replace=False)
+        else: # if no language specified just pick a bunch of random letters
+            categories = np.random.choice(range(n_classes), size=(N, ), replace=False)
+        
+        true_category = categories[0]
+        ex1, ex2 = np.random.choice(n_examples, replace=False, size=(2, ))
+        test_image = np.asarray([X[true_category, ex1, :, :]]*N).reshape(N, w, h, 1)
+        support_set = X[categories, indices, :, :] # TODO: What is the support_set?
+        support_set[0, :, :] = X[true_category, ex2]
+        support_set = support_set.reshape(N, w, h, 1)
+        targets = np.zeros((N, ))
+        targets[0] = 1
+        targets, test_image, support_set = shuffle(targets, test_image, support_set)
+        pairs = [test_image, support_set]
+
+        return pairs, targets
+
+    def test_oneshot(self, model, N, k, s='val', verbose=0):
+        """Test average N way oneshot learning accuracy of a siamese neural net over k one-shot tasks"""
+        n_correct = 0
+        if verbose:
+            print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k, N))
+        
+        for i in range(k):
+            inputs, targets = self.make_oneshot_task(N, s)
+            probs = model.predict(inputs)
+            if np.argmax(probs) == np.argmax(targets):
+                n_correct += 1
+
+        percent_correct = (100.0 * n_correct / k)
+
+        if verbose:
+            print("Got an average of {}% {} way one-shot learning accuracy \n".format(percent_correct, N))
+        
+        return percent_correct
+
+        # def train(self, model, epochs, verbosity): 
+        #     # TODO: Why is verbosity param here ?
+        #     # TODO: deleting train method is better
+        #     model.fit_generator(self.generate(batch_size))
+        
+        
+
                 
 
 
