@@ -13,7 +13,7 @@ class Siamese_Loader:
         self.categories = {}
         self.info = {}
 
-    def load_data(self, path, data_subsets):
+    def load_data(self, path, data_subsets=["train", "val"]):
         # This code should be extracted to method... Done
         for name in data_subsets:
             file_path = os.path.join(path, name + ".pickle")
@@ -92,7 +92,7 @@ class Siamese_Loader:
         if verbose:
             print("Evaluating model on {} random {} way one-shot learning tasks ... \n".format(k, N))
         
-        for i in range(k):
+        for _ in range(k):
             inputs, targets = self.make_oneshot_task(N, s)
             probs = model.predict(inputs)
             if np.argmax(probs) == np.argmax(targets):
